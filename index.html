@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сутінки — клікни, щоб зайти</title>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14163a;--dusk:#4a3f8f;--lamp:#ffc857;--moss:#3f7d6b;--chalk:#f3ecdc;--bg:#0d0f2b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d0f2b}}
+:root[data-theme="dark"]{--bg:#0d0f2b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--chalk);font-family:'Comfortaa',system-ui,sans-serif;overflow:hidden}
+#scene{width:100%;height:100%;display:block}
+.hs{cursor:pointer;outline:none}
+.hs .ring{fill:none;stroke:var(--lamp);stroke-width:2;opacity:.8;transform-box:fill-box;transform-origin:center;animation:pulse 2.4s ease-out infinite}
+.hs .dot{fill:var(--lamp)}
+.hs .lbl{fill:var(--chalk);font-size:24px;opacity:0;transition:opacity .2s;pointer-events:none;paint-order:stroke;stroke:var(--ink);stroke-width:6px}
+.hs:hover .lbl,.hs:focus-visible .lbl{opacity:1}
+.hs:focus-visible .dot{stroke:#fff;stroke-width:3}
+@keyframes pulse{from{transform:scale(.6);opacity:.9}to{transform:scale(2.2);opacity:0}}
+#hint{position:fixed;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom,0px));text-align:center;font-size:14px;opacity:.75;pointer-events:none}
+#place{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(13,15,43,.94);
+opacity:0;visibility:hidden;transform:scale(.3);transition:opacity .35s,transform .35s,visibility 0s .35s}
+#place.open{opacity:1;visibility:visible;transform:none;transition:opacity .35s,transform .35s}
+.card{width:min(640px,100%);max-height:100%;overflow:auto}
+.card svg{width:100%;height:auto;display:block;border-radius:18px}
+h1{font-size:26px;margin:18px 0 8px}
+p{font-size:17px;line-height:1.6;margin:0 0 20px;max-width:60ch}
+button{font:inherit;font-weight:700;background:var(--lamp);color:var(--ink);border:0;border-radius:999px;padding:12px 26px;cursor:pointer}
+button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media (prefers-reduced-motion:reduce){.hs .ring{animation:none}#place,#place.open{transition:none}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.grid img{width:100%;height:auto;display:block;border-radius:14px}
+.ph0{padding:48px 20px;text-align:center;border-radius:18px;background:linear-gradient(#3d3679,#14163a);font-size:15px;line-height:1.5}
+</style>
+</head>
+<body>
+<svg id="scene" viewBox="0 0 1000 750" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Карта міста"><image id="bg" width="1000" height="750"/><g id="hotspots"></g></svg>
+<div id="hint">Тицяй на світні точки</div>
+<div id="place" role="dialog" aria-modal="true" aria-labelledby="pt"><div class="card"><div id="art"></div><h1 id="pt"></h1><p id="px"></p><button id="back">Вийти назад</button></div></div>
+<script src="places.js"></script>
+<script>
+const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg',pl=$('place'),sc=$('scene'),hs=$('hotspots');let last=null,VW=1000,VH=750;
+document.title=SITE.title;$('hint').textContent=SITE.hint;
+function open(p,g){last=g;const r=g.getBoundingClientRect();pl.style.transformOrigin=(r.left+r.width/2)+'px '+(r.top+r.height/2)+'px';
+const art=$('art');art.innerHTML='';const list=p.photos||[];
+if(list.length){const grid=document.createElement('div');grid.className='grid';
+list.forEach(src=>{const im=new Image();im.src=src;im.alt=p.title;im.loading='lazy';im.onerror=()=>im.replaceWith(ph0(src));grid.appendChild(im)});art.appendChild(grid)}
+$('pt').textContent=p.title;$('px').textContent=p.text||'';pl.classList.add('open');$('back').focus()}
+function ph0(src){const d=document.createElement('div');d.className='ph0';d.textContent=src?'Фото '+src+' не знайдено. Поклади файл у папку photos.':'Тут буде твоє фото. Додай його в places.js.';return d}
+function build(){hs.innerHTML='';PLACES.forEach(p=>{const cx=p.x*VW/100,cy=p.y*VH/100,g=document.createElementNS(NS,'g');
+g.setAttribute('class','hs');g.setAttribute('tabindex',0);g.setAttribute('role','button');g.setAttribute('aria-label',p.title);
+g.innerHTML=`<circle cx="${cx}" cy="${cy}" r="34" fill="transparent"/><circle class="ring" cx="${cx}" cy="${cy}" r="18"/><circle class="dot" cx="${cx}" cy="${cy}" r="7"/><text class="lbl" x="${cx}" y="${cy-28}" text-anchor="middle"></text>`;
+g.querySelector('text').textContent=p.title;g.addEventListener('click',()=>open(p,g));
+g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open(p,g)}});hs.appendChild(g)})}
+const bg=new Image();bg.onload=()=>{VH=Math.round(VW*bg.naturalHeight/bg.naturalWidth);sc.setAttribute('viewBox','0 0 '+VW+' '+VH);const im=$('bg');im.setAttribute('href',SITE.background);im.setAttribute('width',VW);im.setAttribute('height',VH);build()};
+bg.onerror=()=>{$('hint').textContent='Не знайшов фон '+SITE.background+'. Поклади його в папку photos.'};bg.src=SITE.background;
+function close(){pl.classList.remove('open');if(last)last.focus()}
+$('back').onclick=close;document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+if(location.hash==='#edit')sc.addEventListener('click',e=>{const t=sc.createSVGPoint();t.x=e.clientX;t.y=e.clientY;const q=t.matrixTransform(sc.getScreenCTM().inverse());$('hint').textContent='x: '+(q.x/VW*100).toFixed(1)+', y: '+(q.y/VH*100).toFixed(1)});
+</script>
+</body>
+</html>
